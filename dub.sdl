@@ -1,0 +1,11 @@
+name "simple-live-demo"
+description "Simple one-way live streaming demo"
+authors "Hiroki Noda"
+license "BSL-1.0"
+
+dependency "vibe-d" version="~>0.10"
+
+targetType "executable"
+targetPath "build"
+sourcePaths "source"
+importPaths "source"
