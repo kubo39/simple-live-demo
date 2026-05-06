@@ -1,4 +1,4 @@
-module m3u8.playlist;
+module hls_m3u8.media_playlist;
 
 import std.algorithm : max;
 import std.array : appender;

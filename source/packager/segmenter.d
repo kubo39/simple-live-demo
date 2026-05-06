@@ -4,7 +4,7 @@ import std.file : write, remove, exists, rename;
 import std.format : format;
 import std.path : buildPath;
 
-import m3u8 : MediaPlaylist;
+import hls_m3u8 : MediaPlaylist;
 import mpeg2ts : TSPacket, TS_PACKET_SIZE, PCR_CLOCK_RATE;
 
 struct Segmenter
