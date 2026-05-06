@@ -16,25 +16,17 @@ enum HLS_VERSION = 3;
 struct MediaPlaylist
 {
     uint targetDuration;
-    uint maxSegments;
     uint mediaSequence;
     SegmentEntry[] segments;
 
-    this(uint targetDuration, uint maxSegments = 5)
+    this(uint targetDuration)
     {
         this.targetDuration = targetDuration;
-        this.maxSegments = maxSegments;
     }
 
     void addSegment(string uri, double duration)
     {
         segments ~= SegmentEntry(uri, duration);
-
-        if (segments.length > maxSegments)
-        {
-            segments = segments[1 .. $];
-            mediaSequence++;
-        }
     }
 
     string serialize()

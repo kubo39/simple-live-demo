@@ -4,7 +4,7 @@ import std.file : write, remove, exists, rename;
 import std.format : format;
 import std.path : buildPath;
 
-import hls_m3u8 : MediaPlaylist;
+import hls_m3u8 : MediaPlaylist, SegmentEntry;
 import mpeg2ts : TSPacket, TS_PACKET_SIZE, PCR_CLOCK_RATE;
 
 struct Segmenter
@@ -12,6 +12,7 @@ struct Segmenter
     string outputDir;
     uint targetDuration;
     uint maxDuration;
+    uint maxSegments;
     MediaPlaylist playlist;
 
     private
@@ -22,11 +23,12 @@ struct Segmenter
         bool started;
     }
 
-    this(string outputDir, uint targetDuration = 4)
+    this(string outputDir, uint targetDuration = 4, uint maxSegments = 5)
     {
         this.outputDir = outputDir;
         this.targetDuration = targetDuration;
         this.maxDuration = targetDuration * 2;
+        this.maxSegments = maxSegments;
         this.playlist = MediaPlaylist(targetDuration);
     }
 
@@ -69,6 +71,13 @@ struct Segmenter
         write(path, currentSegment);
 
         playlist.addSegment(filename, duration);
+
+        if (playlist.segments.length > maxSegments)
+        {
+            playlist.segments = playlist.segments[1 .. $];
+            playlist.mediaSequence++;
+        }
+
         writePlaylist();
         segmentIndex++;
         currentSegment = null;
@@ -86,9 +95,9 @@ struct Segmenter
 
     private void cleanupOldSegments()
     {
-        if (segmentIndex <= playlist.maxSegments + 2) return;
+        if (segmentIndex <= maxSegments + 2) return;
 
-        uint oldest = segmentIndex - playlist.maxSegments - 3;
+        uint oldest = segmentIndex - maxSegments - 3;
         string filename = format!"segment_%05d.ts"(oldest);
         string path = buildPath(outputDir, filename);
         if (exists(path))
