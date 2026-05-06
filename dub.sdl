@@ -4,6 +4,7 @@ authors "Hiroki Noda"
 license "BSL-1.0"
 
 dependency "vibe-d" version="~>0.10"
+dependency "hls_m3u8" repository="git+https://github.com/kubo39/hls_m3u8.git" version="e208a06636d2255573e7eda72c31f5fcf1586e85"
 
 targetType "executable"
 targetPath "build"

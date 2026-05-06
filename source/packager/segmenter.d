@@ -5,7 +5,7 @@ import std.file : write, remove, exists, rename;
 import std.format : format;
 import std.path : buildPath;
 
-import hls_m3u8 : MediaPlaylist, SegmentEntry;
+import hls_m3u8 : MediaPlaylist, MediaSegment;
 import mpeg2ts : TSPacket, TS_PACKET_SIZE, PCR_CLOCK_RATE;
 
 struct Segmenter
@@ -71,7 +71,7 @@ struct Segmenter
         string path = buildPath(outputDir, filename);
         write(path, currentSegment);
 
-        playlist.addSegment(filename, duration);
+        playlist.addSegment(MediaSegment(filename, duration));
 
         if (playlist.segments.length > maxSegments)
         {
