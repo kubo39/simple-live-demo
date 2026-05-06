@@ -1,5 +1,6 @@
 module packager.segmenter;
 
+import core.time : Duration, dur, seconds;
 import std.file : write, remove, exists, rename;
 import std.format : format;
 import std.path : buildPath;
@@ -10,8 +11,8 @@ import mpeg2ts : TSPacket, TS_PACKET_SIZE, PCR_CLOCK_RATE;
 struct Segmenter
 {
     string outputDir;
-    uint targetDuration;
-    uint maxDuration;
+    Duration targetDuration;
+    Duration maxDuration;
     uint maxSegments;
     MediaPlaylist playlist;
 
@@ -23,7 +24,7 @@ struct Segmenter
         bool started;
     }
 
-    this(string outputDir, uint targetDuration = 4, uint maxSegments = 5)
+    this(string outputDir, Duration targetDuration = 4.seconds, uint maxSegments = 5)
     {
         this.outputDir = outputDir;
         this.targetDuration = targetDuration;
@@ -41,7 +42,7 @@ struct Segmenter
             segmentStartPcr = pcr;
         }
 
-        double elapsed = cast(double)(pcr - segmentStartPcr) / PCR_CLOCK_RATE;
+        auto elapsed = pcrToDuration(pcr - segmentStartPcr);
         bool shouldSplit = isKeyframe && elapsed >= targetDuration;
         bool forceSplit = elapsed >= maxDuration;
 
@@ -58,13 +59,13 @@ struct Segmenter
     {
         if (currentSegment.length > 0)
         {
-            double duration = cast(double)(pcr - segmentStartPcr) / PCR_CLOCK_RATE;
-            if (duration <= 0) duration = targetDuration;
+            auto duration = pcrToDuration(pcr - segmentStartPcr);
+            if (duration <= Duration.zero) duration = targetDuration;
             flushSegment(duration);
         }
     }
 
-    private void flushSegment(double duration)
+    private void flushSegment(Duration duration)
     {
         string filename = format!"segment_%05d.ts"(segmentIndex);
         string path = buildPath(outputDir, filename);
@@ -105,4 +106,10 @@ struct Segmenter
             remove(path);
         }
     }
+}
+
+// PCR (90kHz) を Duration に変換
+private Duration pcrToDuration(long pcrTicks)
+{
+    return dur!"usecs"(pcrTicks * 1_000_000 / PCR_CLOCK_RATE);
 }
