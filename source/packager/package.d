@@ -1,15 +1,14 @@
 module packager;
 
-import std.stdio : File, stdin;
+import std.stdio : File;
 
-import packager.ts_parser;
+import mpeg2ts;
 import packager.segmenter;
 
 void runPackager(File input, string outputDir)
 {
     StreamInfo streamInfo;
-    Segmenter segmenter;
-    segmenter.initialize(outputDir);
+    auto segmenter = Segmenter(outputDir);
 
     ubyte[TS_PACKET_SIZE] buf;
     long firstPcr = -1;
@@ -28,7 +27,7 @@ void runPackager(File input, string outputDir)
 
         auto pkt = parsePacket(buf);
 
-        if (pkt.hasPcr)
+        if (pkt.hasPcr && streamInfo.hasStreams && pkt.pid == streamInfo.pcrPid)
         {
             if (firstPcr < 0)
             {

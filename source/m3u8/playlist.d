@@ -1,9 +1,9 @@
-module packager.playlist;
+module m3u8.playlist;
 
+import std.algorithm : max;
 import std.array : appender;
-import std.file : rename, write;
 import std.format : format;
-import std.path : buildPath;
+import std.math : ceil;
 
 struct SegmentEntry
 {
@@ -11,21 +11,19 @@ struct SegmentEntry
     double duration;
 }
 
-struct PlaylistManager
+enum HLS_VERSION = 3;
+
+struct MediaPlaylist
 {
-    string outputDir;
-    string playlistName;
     uint targetDuration;
     uint maxSegments;
-    SegmentEntry[] segments;
     uint mediaSequence;
+    SegmentEntry[] segments;
 
-    void initialize(string dir, uint target = 4, uint maxSegs = 5)
+    this(uint targetDuration, uint maxSegments = 5)
     {
-        outputDir = dir;
-        playlistName = "stream.m3u8";
-        targetDuration = target;
-        maxSegments = maxSegs;
+        this.targetDuration = targetDuration;
+        this.maxSegments = maxSegments;
     }
 
     void addSegment(string filename, double duration)
@@ -37,15 +35,10 @@ struct PlaylistManager
             segments = segments[1 .. $];
             mediaSequence++;
         }
-
-        writePlaylist();
     }
 
-    void writePlaylist()
+    string serialize()
     {
-        import std.math : ceil;
-        import std.algorithm : max;
-
         double maxDur = targetDuration;
         foreach (seg; segments)
         {
@@ -54,7 +47,7 @@ struct PlaylistManager
 
         auto buf = appender!string;
         buf ~= "#EXTM3U\n";
-        buf ~= "#EXT-X-VERSION:3\n";
+        buf ~= format!"#EXT-X-VERSION:%d\n"(HLS_VERSION);
         buf ~= format!"#EXT-X-TARGETDURATION:%d\n"(cast(uint) ceil(maxDur));
         buf ~= format!"#EXT-X-MEDIA-SEQUENCE:%d\n"(mediaSequence);
         buf ~= "\n";
@@ -65,9 +58,6 @@ struct PlaylistManager
             buf ~= seg.filename ~ "\n";
         }
 
-        string path = buildPath(outputDir, playlistName);
-        string tmpPath = path ~ ".tmp";
-        write(tmpPath, buf[]);
-        rename(tmpPath, path);
+        return buf[];
     }
 }

@@ -1,18 +1,18 @@
 module packager.segmenter;
 
-import std.file : write, remove, exists;
+import std.file : write, remove, exists, rename;
 import std.format : format;
 import std.path : buildPath;
 
-import packager.playlist : PlaylistManager;
-import packager.ts_parser : TSPacket, TS_PACKET_SIZE;
+import m3u8 : MediaPlaylist;
+import mpeg2ts : TSPacket, TS_PACKET_SIZE, PCR_CLOCK_RATE;
 
 struct Segmenter
 {
     string outputDir;
     uint targetDuration;
     uint maxDuration;
-    PlaylistManager playlist;
+    MediaPlaylist playlist;
 
     private
     {
@@ -22,14 +22,12 @@ struct Segmenter
         bool started;
     }
 
-    void initialize(string dir, uint target = 4)
+    this(string outputDir, uint targetDuration = 4)
     {
-        outputDir = dir;
-        targetDuration = target;
-        maxDuration = target * 2;
-        playlist.initialize(dir, target);
-        segmentIndex = 0;
-        started = false;
+        this.outputDir = outputDir;
+        this.targetDuration = targetDuration;
+        this.maxDuration = targetDuration * 2;
+        this.playlist = MediaPlaylist(targetDuration);
     }
 
     void addPacket(ref TSPacket pkt, bool isKeyframe, long pcr)
@@ -41,7 +39,7 @@ struct Segmenter
             segmentStartPcr = pcr;
         }
 
-        double elapsed = cast(double)(pcr - segmentStartPcr) / 90_000.0;
+        double elapsed = cast(double)(pcr - segmentStartPcr) / PCR_CLOCK_RATE;
         bool shouldSplit = isKeyframe && elapsed >= targetDuration;
         bool forceSplit = elapsed >= maxDuration;
 
@@ -58,7 +56,7 @@ struct Segmenter
     {
         if (currentSegment.length > 0)
         {
-            double duration = cast(double)(pcr - segmentStartPcr) / 90_000.0;
+            double duration = cast(double)(pcr - segmentStartPcr) / PCR_CLOCK_RATE;
             if (duration <= 0) duration = targetDuration;
             flushSegment(duration);
         }
@@ -71,10 +69,19 @@ struct Segmenter
         write(path, currentSegment);
 
         playlist.addSegment(filename, duration);
+        writePlaylist();
         segmentIndex++;
         currentSegment = null;
 
         cleanupOldSegments();
+    }
+
+    private void writePlaylist()
+    {
+        string path = buildPath(outputDir, "stream.m3u8");
+        string tmpPath = path ~ ".tmp";
+        write(tmpPath, playlist.serialize());
+        rename(tmpPath, path);
     }
 
     private void cleanupOldSegments()
