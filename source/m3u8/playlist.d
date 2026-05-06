@@ -7,7 +7,7 @@ import std.math : ceil;
 
 struct SegmentEntry
 {
-    string filename;
+    string uri;
     double duration;
 }
 
@@ -26,9 +26,9 @@ struct MediaPlaylist
         this.maxSegments = maxSegments;
     }
 
-    void addSegment(string filename, double duration)
+    void addSegment(string uri, double duration)
     {
-        segments ~= SegmentEntry(filename, duration);
+        segments ~= SegmentEntry(uri, duration);
 
         if (segments.length > maxSegments)
         {
@@ -55,7 +55,7 @@ struct MediaPlaylist
         foreach (seg; segments)
         {
             buf ~= format!"#EXTINF:%.3f,\n"(seg.duration);
-            buf ~= seg.filename ~ "\n";
+            buf ~= seg.uri ~ "\n";
         }
 
         return buf[];
